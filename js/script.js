@@ -11,6 +11,7 @@ $( "#newLineForm" ).submit(function(e) {
 		ChefNumber: form.ChefNumber.value,
 		CustomerName: form.CustomerName.value,
 		CustomerNumber: form.CustomerNumber.value,
+		isActive: true,
 		Thread: " "
 	};
 
@@ -30,9 +31,47 @@ var confirmDeactivate = function(e) {
 		var query = new Parse.Query(TempGroup);
 		query.get(e.target.attributes['data-id'].value, {
 			success: function(theObject) {
+				theObject.set("isActive", false);
+				theObject.save();
+				renderOpenLines();
+			},
+			error: function(error) {
+				console.log("Error deactivating this line: " + error);
+			}
+		});
+		
+		e.preventDefault();
+    }
+}
+
+var confirmActivate = function(e) {
+	var TempGroup = Parse.Object.extend("TempGroup");
+	var query = new Parse.Query(TempGroup);
+	query.get(e.target.attributes['data-id'].value, {
+		success: function(theObject) {
+			theObject.set("isActive", true);
+			theObject.save();
+			alert("This line has been activated!");
+			renderOpenLines();
+		},
+		error: function(error) {
+			console.log("Error deactivating this line: " + error);
+		}
+	});
+	
+	e.preventDefault();
+}
+
+var confirmDestroy = function(e) {
+	result = window.confirm("Are you sure you want to destroy this line?");
+	if(result) {
+		var TempGroup = Parse.Object.extend("TempGroup");
+		var query = new Parse.Query(TempGroup);
+		query.get(e.target.attributes['data-id'].value, {
+			success: function(theObject) {
 				theObject.destroy({
 					success: function(obj) {
-						alert("The line was deactivated!");
+						alert("The line was destroyed!");
 					},
 					error: function(obj, err) { 
 						console.log("Error deleting object: " + err); 
@@ -41,7 +80,7 @@ var confirmDeactivate = function(e) {
 				renderOpenLines();
 			},
 			error: function(error) {
-				console.log("Error deactivating this line: " + error);
+				console.log("Error destroying this line: " + error);
 			}
 		});
 		
@@ -91,8 +130,26 @@ var renderOpenLines = function() {
                     click: confirmDeactivate
                 });
 
+                var activateButton = $("<button />", {
+                    text: "Activate",
+                    type: "button",
+                    "data-id": result.id,
+                    "class": "btn btn-default btn-xs",
+                    click: confirmActivate
+                });
+
+                var destroyButton = $("<button />", {
+                    text: "Destroy",
+                    type: "button",
+                    "data-id": result.id,
+                    "class": "btn btn-default btn-xs",
+                    click: confirmDestroy
+                });
+
                 var actionCell = $("<td />");
-                deactivateButton.appendTo(actionCell);
+                result.attributes.isActive ? 
+                	deactivateButton.appendTo(actionCell) : activateButton.appendTo(actionCell);
+                destroyButton.appendTo(actionCell);
                 actionCell.appendTo(dataRow);
                 dataRow.appendTo(table);
 
