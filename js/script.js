@@ -5,23 +5,47 @@ $( "#newLineForm" ).submit(function(e) {
 
 	var form = e.target;
 
-	var data = {
-		TwilioNumber: form.TwilioNumber.value,
-		ChefName: form.ChefName.value,
-		ChefNumber: form.ChefNumber.value,
-		CustomerName: form.CustomerName.value,
-		CustomerNumber: form.CustomerNumber.value,
-		isActive: true,
-		Thread: " "
-	};
+    if($(" #newLineForm input[name='EditFlag'] ").val() === "") {
 
-	var TempGroup = Parse.Object.extend("TempGroup");
-    var tg = new TempGroup();
-    tg.save(data)
-      .then(function(){
-      		alert("The new line has been created!");
-      		renderOpenLines();
-      });
+    	var data = {
+    		TwilioNumber: form.TwilioNumber.value,
+    		ChefName: form.ChefName.value,
+    		ChefNumber: form.ChefNumber.value,
+    		CustomerName: form.CustomerName.value,
+    		CustomerNumber: form.CustomerNumber.value,
+    		isActive: true,
+    		Thread: " "
+    	};
+
+    	var TempGroup = Parse.Object.extend("TempGroup");
+        var tg = new TempGroup();
+        tg.save(data)
+          .then(function(){
+          		alert("The new line has been created!");
+          		renderOpenLines();
+          });
+
+    } else {
+        var objId = $(" #newLineForm input[name='EditFlag'] ").val();
+
+        var TempGroup = Parse.Object.extend("TempGroup");
+        var query = new Parse.Query(TempGroup);
+        query.get(objId, {
+            success: function(theObject) {
+                theObject.set("TwilioNumber", form.TwilioNumber.value);
+                theObject.set("ChefName", form.ChefName.value);
+                theObject.set("ChefNumber", form.ChefNumber.value);
+                theObject.set("CustomerName", form.CustomerName.value);
+                theObject.set("CustomerNumber", form.CustomerNumber.value);
+                theObject.save();
+                alert("This line has been updated successfully!");
+                renderOpenLines();
+            },
+            error: function(error) {
+                alert("Error editing this line: " + error);
+            }
+        });
+    }
 });
 
 var confirmDeactivate = function(e) {
@@ -88,6 +112,20 @@ var confirmDestroy = function(e) {
     }
 }
 
+var fillDetails = function(e) {
+    var sel = "#" + e.target.attributes['data-id'].value + " td:nth-child";
+
+    $("#newLineForm input[name='EditFlag']").val(e.target.attributes['data-id'].value);
+
+    $("#newLineForm input[name='TwilioNumber']").val($(sel + "(1)").html());
+    $("#newLineForm input[name='CustomerName']").val($(sel + "(2)").html());
+    $("#newLineForm input[name='CustomerNumber']").val($(sel + "(3)").html());
+    $("#newLineForm input[name='ChefName']").val($(sel + "(4)").html());
+    $("#newLineForm input[name='ChefNumber']").val($(sel + "(5)").html());    
+    
+    e.preventDefault();
+}
+
 var renderOpenLines = function() {
 	 // Render rows for open questions
     var TempGroup = Parse.Object.extend("TempGroup");
@@ -114,7 +152,7 @@ var renderOpenLines = function() {
 
             $.each(results, function(index, result) {
 
-            	var dataRow = $("<tr />");
+            	var dataRow = $("<tr />", { id: result.id });
                 $("<td />", { text: result.attributes.TwilioNumber }).appendTo(dataRow);
                 $("<td />", { text: result.attributes.CustomerName }).appendTo(dataRow);
                 $("<td />", { text: result.attributes.CustomerNumber }).appendTo(dataRow);
@@ -146,7 +184,16 @@ var renderOpenLines = function() {
                     click: confirmDestroy
                 });
 
+                var editButton = $("<button />", {
+                    text: "Edit",
+                    type: "button",
+                    "data-id": result.id,
+                    "class": "btn btn-default btn-xs",
+                    click: fillDetails
+                });
+
                 var actionCell = $("<td />");
+                editButton.appendTo(actionCell);
                 result.attributes.isActive ? 
                 	deactivateButton.appendTo(actionCell) : activateButton.appendTo(actionCell);
                 destroyButton.appendTo(actionCell);
